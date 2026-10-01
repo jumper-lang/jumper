@@ -1,0 +1,44 @@
+# --- Gradle build ---
+.gradle/
+build/
+out/
+bin/
+
+# --- IDE ---
+.intellijPlatform/
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.classpath
+.project
+.vscode/
+.factorypath
+
+# --- Not in the repository (jumper-lang/jumper: the language and its language server; the editor
+# extensions are github.com/jumper-lang/jumper-vscode, jumper-intellij, jumper.nvim) ---
+# documentation: no .md is committed
+*.md
+# the benchmark, the embedding example, the old VS Code extension, local scratch
+/bench/
+/example/
+/icon/
+/_to_delete/
+/lsp/
+/ship.txt
+/jj.cmd
+node_modules/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Logs and temporary files ---
+*.log
+*.tmp
+hs_err_pid*.log
+replay_pid*.log
+
+# Tests (src/test/**, including *.jmp in src/test/resources/scripts/) are NOT ignored.

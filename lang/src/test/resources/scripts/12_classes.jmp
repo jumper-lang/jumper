@@ -1,0 +1,167 @@
+class Point {
+    dyn x, y;
+    Point(x, y) { this.x = x; this.y = y; }
+    double len() { return Math.sqrt(x * x + y * y); }
+    dyn add(other) { return new Point(x + other.x, y + other.y); }
+    dyn toString() { return "(" + x + ", " + y + ")"; }
+}
+dyn p = new Point(3, 4);
+assert(p.len() == 5.0);
+assert(p.x == 3 && p["y"] == 4);
+assert(str(p) == "(3, 4)" && ("" + p.add(new Point(1, 1))) == "(4, 5)");
+assert(type(p) == "Point" && isa(p, Point) && !isa({}, Point) && !isa(p, java.util.List));
+assert(len(p) == 2);
+dyn keysP = "";
+for (dyn k : p) keysP += k;
+assert(keysP == "xy");
+
+// fields with initializers and types, a no-arg constructor, a method as a value
+class Counter {
+    int n = 0;
+    dyn history = [];
+    String label = "c";
+    void inc() { n++; history.push(n); }
+    dyn get() { return n; }
+}
+dyn c = new Counter();
+c.inc(); c.inc();
+assert(c.get() == 2 && c.history.length == 2 && c.label == "c");
+dyn bound = c.inc;
+bound(); bound();
+assert(c.n == 4);
+dyn c2 = new Counter();
+assert(c2.n == 0 && c2.history.length == 0, "initializers run per instance");
+
+// inheritance, super(...), super.m(), overriding, implicit super()
+class Animal {
+    dyn name;
+    Animal(name) { this.name = name; }
+    dyn speak() { return name + " makes a sound"; }
+    dyn describe() { return "Animal " + name + ": " + speak(); }
+}
+class Dog extends Animal {
+    dyn tricks = 0;
+    Dog(name) { super(name); }
+    dyn speak() { return name + " barks"; }
+    dyn learn() { tricks++; return this; }
+}
+class Puppy extends Dog {
+    dyn speak() { return super.speak() + " softly"; }
+}
+dyn d = new Dog("Rex");
+assert(d.speak() == "Rex barks" && d.describe() == "Animal Rex: Rex barks");
+assert(d.learn().learn().tricks == 2);
+dyn pp = new Puppy("Bit");
+assert(pp.speak() == "Bit barks softly" && pp.name == "Bit" && pp.tricks == 0);
+assert(isa(pp, Animal) && isa(pp, Dog) && !isa(d, Puppy));
+assert(type(pp) == "Puppy");
+
+// a class without a constructor whose parent has one: arguments go to the parent
+class Cat extends Animal { dyn purr() { return name + " purrs"; } }
+assert(new Cat("Tom").purr() == "Tom purrs");
+
+// typed methods with direct calls, recursion through this
+class Mathy {
+    int fib(int n) { return n < 2 ? n : fib(n - 1) + fib(n - 2); }
+    double avg(int a, int b) { return (a + b) / 2.0; }
+}
+dyn m = new Mathy();
+assert(m.fib(20) == 6765 && m.avg(3, 4) == 3.5);
+
+// classes are values: they can be passed, stored in tables, declared inside functions
+dyn make(cls, arg) { return new cls(arg); }
+assert(make(Dog, "Ace").speak() == "Ace barks");
+dyn registry = { dog: Dog, cat: Cat };
+assert(new registry.cat("Kit").purr() == "Kit purrs");
+dyn factory() {
+    class Local { dyn v = 42; }
+    return new Local();
+}
+assert(factory().v == 42);
+
+// closures in methods and function fields
+class Button {
+    dyn handlers = [];
+    dyn clicks = 0;
+    void onClick(f) { handlers.push(f); }
+    void click() { clicks++; for (dyn h : handlers) h(this); }
+}
+dyn b = new Button();
+dyn log = "";
+b.onClick(btn -> { log += "a" + btn.clicks; });
+b.onClick(btn -> { log += "b" + btn.clicks; });
+b.click(); b.click();
+assert(log == "a1b1a2b2", log);
+
+// classes are sealed: the field set is fixed, a typo is an error, not a new field
+dyn q = new Point(1, 2);
+dyn caught = "";
+try { q.z = 3; } catch (e) { caught = e.message; }
+assert(caught == "No field 'z' in Point", caught);
+try { dyn zz = q.z; } catch (e) { caught = e.message; }
+assert(caught == "No field 'z' in Point", caught);
+try { q["w"] = 1; } catch (e) { caught = e.message; }
+assert(caught == "No field 'w' in Point", caught);
+assert(len(q) == 2);
+assert(str(new Counter()).startsWith("Counter{"));
+q.x = null;                       // null is a regular value of a dyn field, not a removal
+assert(q.x == null && len(q) == 2);
+
+// typed fields live without boxing; types are checked on write
+class Body {
+    double x = 0, y = 0;
+    int hits = 0;
+    boolean alive = true;
+    long ticks = 0;
+    String tag = "b";
+    Body(x, y) { this.x = x; this.y = y; }
+    void step(double dx) { x += dx; y -= dx; hits++; ticks += 2; alive = hits < 3; }
+    double sum() { return x + y; }
+    dyn info() { return tag + ":" + hits + ":" + alive + ":" + ticks; }
+}
+dyn body = new Body(1, 2);
+assert(body.x == 1.0 && type(body.x) == "double" && body.hits == 0 && body.alive && body.tag == "b");
+body.step(0.5); body.step(0.5); body.step(0.5);
+assert(body.x == 2.5 && body.y == 0.5 && body.sum() == 3.0 && body.hits == 3 && !body.alive && body.ticks == 6L);
+assert(body.info() == "b:3:false:6");
+body.hits = 10;                   // a write from outside is checked against the field type
+body.tag = "t";
+assert(body.hits == 10 && body.tag == "t");
+try { body.tag = 42; } catch (e) { caught = e.message; }
+assert(caught.contains("to String"), caught);
+try { body.hits = 1.5; } catch (e) { caught = e.message; }
+assert(caught.contains("to int"), caught);
+try { body.alive = "yes"; } catch (e) { caught = e.message; }
+assert(caught.contains("to boolean"), caught);
+body.hits++; ++body.hits; body.hits += 3;
+assert(body.hits == 15);
+body.x *= 2;
+assert(body.x == 5.0);
+
+// parent fields are available in child methods at the same indexes; fields cannot be redeclared
+class Body3 extends Body {
+    double z = 0;
+    Body3(x, y, z) { super(x, y); this.z = z; }
+    double sum() { return super.sum() + z; }
+    void bump() { hits += 100; z++; }
+}
+dyn b3 = new Body3(1, 2, 3);
+b3.bump();
+assert(b3.sum() == 7.0 && b3.hits == 100 && b3.z == 4.0 && isa(b3, Body));
+dyn bodies = [new Body(1, 1), b3];
+dyn total = 0.0;
+for (dyn bb : bodies) { bb.step(1); total += bb.sum(); }   // the same method for two shapes
+assert(total == 2.0 + 7.0, "" + total);
+
+// this in a lambda inside a method
+class Acc {
+    dyn total = 0;
+    dyn addAll(arr) { arr.forEach(v -> { this.total += v; }); return total; }
+}
+assert(new Acc().addAll([1, 2, 3]) == 6);
+
+// hoisting: a class is used in a function before its declaration
+dyn useLater() { return new Later().v; }
+class Later { dyn v = "later"; }
+assert(useLater() == "later");
+println("12_classes OK");

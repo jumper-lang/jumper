@@ -1,0 +1,52 @@
+dyn user = { name: "Ivan", age: 25, "full name": "Ivan Petrov", 42: "answer" };
+assert(user.name == "Ivan" && user["age"] == 25 && user["full name"] == "Ivan Petrov" && user[42] == "answer");
+user.age = 26;
+user["email"] = "ivan@x.com";
+assert(user.age == 26 && user.email == "ivan@x.com");
+assert(user.missing == null, "missing key is null, not an error");
+assert(len(user) == 5);
+user.email = null;              // removal
+assert(len(user) == 4 && user.email == null);
+user.greet = () -> "Hi, " + user.name;
+assert(user.greet() == "Hi, Ivan");
+assert(type(user) == "table");
+assert(keys({x: 1, y: 2})[1] == "y");
+
+// nested
+dyn cfg = { db: { host: "localhost", port: 5432 }, tags: ["a", "b"] };
+assert(cfg.db.port == 5432 && cfg.tags[1] == "b");
+cfg.db.port++;
+assert(cfg.db.port == 5433);
+cfg.tags[2] = "c";
+assert(cfg.tags.length == 3);
+
+// arrays
+dyn arr = [3, 1, 2];
+assert(arr.length == 3 && arr[0] == 3);
+arr[3] = 4;                     // growth
+assert(arr.length == 4);
+arr.push(5);
+assert(arr.pop() == 5 && arr.length == 4);
+arr.add(9, 10);
+assert(arr.length == 6);
+assert(type(arr) == "array");
+assert(str([1, "a", null]) == "[1, a, null]");
+dyn empty = [];
+assert(empty.length == 0);
+dyn a2 = array(3, 0);
+assert(a2.length == 3 && a2[2] == 0);
+
+// an array as java.util.List
+import java.util.Collections;
+Collections.sort(arr);
+assert(arr[0] == 1 && arr[5] == 10);
+assert(arr.contains(9) && arr.indexOf(9) == 4);
+dyn sumAll = 0;
+arr.forEach(v -> { sumAll += v; });
+assert(sumAll == 29);
+
+// a table as a matrix
+dyn grid = [];
+for (int i = 0; i < 3; i++) { dyn row = []; for (int j = 0; j < 3; j++) row[j] = i * j; grid[i] = row; }
+assert(grid[2][2] == 4);
+println("04_tables OK");

@@ -1,0 +1,118 @@
+// Scenarios sensitive to Tier 1 (run in both force and tier0 mode)
+
+// mutual recursion through direct typed calls
+boolean isEven(int n) { return n == 0 ? true : isOdd(n - 1); }
+boolean isOdd(int n) { return n == 0 ? false : isEven(n - 1); }
+assert(isEven(10) && isOdd(7) && !isEven(3));
+
+// redefining a declared function: the direct-call guard must fall to the slow path
+int twice(int x) { return x * 2; }
+int useTwice(int x) { return twice(x) + 1; }
+assert(useTwice(5) == 11);
+twice = x -> x * 100;
+assert(useTwice(5) == 501);
+twice = null;
+dyn failed = false;
+// no try/catch - only check that the variable became null
+assert(twice == null);
+
+// typed return of a dynamic value
+int fromVar() { dyn x = 5; return x; }
+double halfOf(dyn v) { return v / 2; }
+assert(fromVar() == 5 && type(fromVar()) == "int");
+assert(halfOf(7) == 3 && type(halfOf(7)) == "double", "int/int stays int, widened on return");
+assert(halfOf(7.0) == 3.5);
+
+// String parameters and return
+String shout(String s) { return s.toUpperCase() + "!"; }
+assert(shout("ok") == "OK!");   // not "hi": toUpperCase is locale-dependent, in tr_TR "i" -> dotted capital I
+
+// closures in a loop capture primitives and objects
+dyn fns = [];
+int base = 100;
+for (int i = 0; i < 3; i++) { fns[i] = () -> base + i; }
+base = 200;
+assert(fns[0]() == 203, "shared captured variables (documented limitation)");
+
+dyn makeCounter(int start) {
+    int c = start;
+    dyn t = { get: () -> c, inc: () -> { c++; } };
+    return t;
+}
+dyn k1 = makeCounter(10), k2 = makeCounter(20);
+k1.inc(); k1.inc(); k2.inc();
+assert(k1.get() == 12 && k2.get() == 21);
+
+// logic with operand values
+assert((null || "d") == "d" && (0 && "x") == "x" && (false || null) == null);
+dyn cnt = 0;
+dyn side = () -> { cnt++; return true; };
+dyn r = false && side();
+assert(cnt == 0 && r == false, "short circuit");
+r = true || side();
+assert(cnt == 0 && r == true);
+
+// ternaries of different types
+int ti = true ? 1 : 2;
+double td = false ? 1 : 2.5;
+dyn tv = 1 < 2 ? "yes" : 5;
+assert(ti == 1 && td == 2.5 && tv == "yes");
+
+// break/continue in nested loops + do-while
+dyn log = "";
+for (int i = 0; i < 4; i++) {
+    if (i == 1) continue;
+    int j = 0;
+    do {
+        j++;
+        if (j == 2) break;
+        log += "" + i + j;
+    } while (j < 5);
+    if (i == 2) break;
+}
+assert(log == "0121", log);
+
+// return from the middle of a loop in a compiled function
+dyn find(arr, v) { for (int i = 0; i < arr.length; i++) if (arr[i] == v) return i; return -1; }
+assert(find([5, 6, 7], 7) == 2 && find([5], 9) == -1);
+
+// for-each over a Java collection and a string, with a primitive variable
+import java.util.ArrayList;
+dyn list = new ArrayList();
+list.add(1); list.add(2); list.add(3);
+int s = 0;
+for (int v : list) s += v;
+assert(s == 6);
+dyn chars = "";
+for (dyn ch : "abc") chars = ch + chars;
+assert(chars == "cba");
+
+// compound assignments by index and field, increments
+dyn arr = [1, 2, 3];
+arr[1] += 10; arr[2]++; --arr[0];
+dyn t = { n: 5 };
+t.n *= 3; t.n--;
+assert(arr[0] == 0 && arr[1] == 12 && arr[2] == 4 && t.n == 14);
+long big = 1;
+for (int i = 0; i < 40; i++) big *= 2;
+assert(big == 1099511627776L);
+double acc = 0;
+for (int i = 1; i <= 4; i++) acc += 1.0 / i;
+assert(acc > 2.08 && acc < 2.09);
+
+// double comparisons with NaN
+double nan = 0.0 / 0.0;
+assert(!(nan < 1) && !(nan > 1) && !(nan == nan) && nan != nan);
+
+// long shifts with an int operand
+long sh = 1L << 40;
+assert(sh == 1099511627776L && (sh >> 39) == 2);
+
+// deep recursion
+dyn depth(n) { return n == 0 ? 0 : 1 + depth(n - 1); }
+assert(depth(20000) == 20000);
+
+// a call through a lambda variable with typed parameters
+dyn add = (int a, int b) -> a + b;
+assert(add(2, 3) == 5);
+println("09_jit OK");

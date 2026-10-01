@@ -1,0 +1,65 @@
+// Shape-based tables: the same key history -> a shared shape, caches at access sites
+dyn make(i) { return { x: i, y: i * 2 }; }
+dyn pts = [];
+for (int i = 0; i < 100; i++) pts[i] = make(i);
+dyn sum = 0;
+for (dyn p : pts) sum += p.x + p.y;          // monomorphic cache
+assert(sum == 14850);
+
+// polymorphic access at one site: shapes {x,y} and {y,x} differ
+dyn a = { x: 1, y: 2 };
+dyn b = { y: 2, x: 1 };
+dyn getX(t) { return t.x; }
+assert(getX(a) == 1 && getX(b) == 1 && getX(a) == 1);
+
+// adding keys through the write cache
+dyn objs = [];
+for (int i = 0; i < 10; i++) { dyn o = {}; o.a = i; o.b = i + 1; objs[i] = o; }
+assert(objs[9].b == 10 && len(objs[3]) == 2);
+assert(keys(objs[0])[0] == "a" && keys(objs[0])[1] == "b");
+
+// removal -> dictionary mode, order is preserved, caches do not break
+dyn d = { p: 1, q: 2, r: 3 };
+d.q = null;
+assert(len(d) == 2 && d.q == null && d.r == 3);
+d.q = 5;                                     // added again
+dyn ks = "";
+for (dyn k : d) ks += k;
+assert(ks == "prq", ks);
+assert(getX(d) == null);
+
+// many keys -> dictionary mode
+dyn big = {};
+for (int i = 0; i < 200; i++) big["k" + i] = i;
+assert(len(big) == 200 && big.k150 == 150 && big["k0"] == 0);
+big.k150 = null;
+assert(len(big) == 199);
+dyn cnt = 0;
+for (dyn k : big) cnt++;
+assert(cnt == 199);
+
+// computed keys and numeric keys
+dyn key = "k1";
+dyn t = { [key]: 1, 42: "answer", "with space": true };
+assert(t.k1 == 1 && t[42] == "answer" && t["with space"] == true);
+
+// null in a literal = absent key
+dyn n = { a: 1, b: null, c: 3 };
+assert(len(n) == 2 && n.b == null && n.c == 3);
+
+// a table as java.util.Map
+import java.util.HashMap;
+dyn hm = new HashMap({ one: 1, two: 2 });
+assert(hm.size() == 2 && hm.get("two") == 2);
+
+// compound assignment through the cache
+dyn acc = { v: 0.0 };
+for (int i = 0; i < 1000; i++) acc.v += 0.5;
+assert(acc.v == 500.0);
+
+// a function field through the call cache
+dyn obj = { n: 0 };
+obj.inc = () -> { obj.n++; };
+for (int i = 0; i < 5; i++) obj.inc();
+assert(obj.n == 5);
+println("07_shapes OK");

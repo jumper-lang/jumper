@@ -1,0 +1,38 @@
+// Variables, numbers, strings
+dyn x = 10;
+int n = 5;
+double d = n;          // widening int -> double
+String s = "hi";
+dyn y;                 // null
+assert(x == 10);
+assert(d == 5.0 && type(d) == "double");
+assert(y == null);
+assert(1 / 2 == 0, "int division");
+assert(1.0 / 2 == 0.5);
+assert(7 % 3 == 1);
+assert(2147483647 + 1 == -2147483648, "int overflow like Java");
+assert(10L * 3 == 30 && type(10L * 3) == "long");
+assert(0xFF == 255);
+assert(1e3 == 1000.0);
+assert("a" + 1 + 2.5 == "a12.5");
+assert("x" == "x");
+assert(1 == 1.0);
+assert(3 < 4 && 4 <= 4 && 5 > 4 && 5 >= 5);
+assert("abc" < "abd");
+assert(!false && !null && !0 == false);
+assert((true && "yes") == "yes");
+assert((false || 0) == 0);
+assert((null || "def") == "def");
+assert((5 & 3) == 1 && (5 | 3) == 7 && (5 ^ 3) == 6 && (1 << 4) == 16 && (-16 >> 2) == -4 && (-1 >>> 28) == 15);
+dyn t = x > 5 ? "big" : "small";
+assert(t == "big");
+x += 5; x -= 1; x *= 2; x /= 4; x %= 5;
+assert(x == 2);
+x++; ++x; x--;
+assert(x == 3);
+assert(x++ == 3 && x == 4 && ++x == 5);
+assert(-x == -5);
+assert(str(1.5) == "1.5" && str(2.0) == "2.0" && str(null) == "null");
+assert(int("42") == 42 && double("1.5") == 1.5 && int(3.9) == 3);
+assert(len("hello") == 5);
+println("01_basics OK");

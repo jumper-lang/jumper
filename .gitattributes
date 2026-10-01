@@ -1,0 +1,7 @@
+# Line endings in the repository: LF; Windows scripts check out as CRLF, the Unix wrapper as LF
+* text=auto
+*.bat text eol=crlf
+*.cmd text eol=crlf
+gradlew text eol=lf
+*.jar binary
+*.png binary

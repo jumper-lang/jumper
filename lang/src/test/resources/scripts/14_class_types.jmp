@@ -1,0 +1,92 @@
+// Class types on variables, parameters, fields and return values: `Vec v`
+class Vec {
+    double x, y;
+    Vec(double x, double y) { this.x = x; this.y = y; }
+    Vec add(Vec o) { return new Vec(x + o.x, y + o.y); }
+    double dot(Vec o) { return x * o.x + y * o.y; }
+    Vec scale(double k) { x *= k; y *= k; return this; }
+    dyn toString() { return "(" + x + ", " + y + ")"; }
+}
+Vec a = new Vec(1, 2);
+Vec b = new Vec(3, 4);
+Vec c = a.add(b);
+assert(c.x == 4.0 && c.y == 6.0 && a.dot(b) == 11.0);
+assert(str(c.scale(0.5)) == "(2.0, 3.0)");
+
+// type check on assignment and on parameter passing
+dyn caught = "";
+dyn five = 5;
+try { a = five; } catch (e) { caught = e.message; }
+assert(caught == "Expected Vec, got int", caught);
+try { a = {x: 1, y: 2}; } catch (e) { caught = e.message; }
+assert(caught == "Expected Vec, got table", caught);
+try { a.dot({x2: 1, y: 2}); } catch (e) { caught = e.message; }
+assert(caught == "Expected Vec, got table", caught);
+a = null;                          // null is allowed
+assert(a == null);
+
+// top-level functions with class types, called before declaration
+Vec mid(Vec p, Vec q) { return new Vec((p.x + q.x) / 2, (p.y + q.y) / 2); }
+assert(mid(b, c).x == 2.5);
+double len2(Vec v) { return v.x * v.x + v.y * v.y; }
+assert(len2(b) == 25.0);
+Vec zero = new Vec(0, 0);
+Vec origin() { return zero; }
+Vec originLater() { return origin(); }
+assert(origin().x == 0.0 && originLater().y == 0.0);
+
+// inheritance: a child fits where a parent is expected; a parent in place of a child is an error
+class Vec3 extends Vec {
+    double z;
+    Vec3(x, y, z) { super(x, y); this.z = z; }
+    double dot(Vec o) { return super.dot(o) + (isa(o, Vec3) ? z * o.z : 0); }
+}
+Vec3 v3 = new Vec3(1, 1, 1);
+Vec asVec = v3;
+assert(asVec.dot(v3) == 3.0 && len2(v3) == 2.0);
+dyn anyB = b;
+try { Vec3 bad = anyB; } catch (e) { caught = e.message; }
+assert(caught == "Expected Vec3, got Vec", caught);
+
+// class-typed fields and lambdas with typed parameters
+class Segment {
+    Vec from, to;
+    Segment(Vec from, Vec to) { this.from = from; this.to = to; }
+    double len2() { Vec d = new Vec(to.x - from.x, to.y - from.y); return d.dot(d); }
+    void moveTo(Vec p) { to = p; }
+}
+dyn s = new Segment(new Vec(0, 0), new Vec(3, 4));
+assert(s.len2() == 25.0);
+s.moveTo(new Vec(0, 1));
+assert(s.len2() == 1.0);
+try { s.moveTo("nope"); } catch (e) { caught = e.message; }
+assert(caught == "Expected Vec, got string", caught);
+dyn one = 1;
+try { s.from = one; } catch (e) { caught = e.message; }
+assert(caught == "Expected Vec, got int", caught);
+dyn pts = [new Vec(1, 0), new Vec(0, 2), new Vec3(1, 1, 5)];
+double total = 0;
+for (Vec p : pts) total += p.x + p.y;
+assert(total == 5.0);
+dyn sumX = 0.0;
+pts.forEach((Vec p) -> { sumX += p.x; });
+assert(sumX == 2.0);
+try { for (Vec p : [1]) {} } catch (e) { caught = e.message; }
+assert(caught == "Expected Vec, got int", caught);
+println("14_class_types OK");
+
+// a field of its own type inside a class, and a class type declared further down
+class Node {
+    Node left, right;
+    int v;
+    Node(Node l, Node r, int v) { this.left = l; this.right = r; this.v = v; }
+    int sum() { return v + (left == null ? 0 : left.sum()) + (right == null ? 0 : right.sum()); }
+}
+class Holder { Later it; Holder(Later it) { this.it = it; } }
+class Later { int k = 3; }
+Node tree = new Node(new Node(null, null, 1), new Node(null, new Node(null, null, 2), 3), 4);
+assert(tree.sum() == 10 && tree.right.right.v == 2);
+assert(new Holder(new Later()).it.k == 3);
+dyn badNode = "";
+try { new Node(5, null, 1); } catch (e) { badNode = e.message; }
+assert(badNode == "Expected Node, got int", badNode);

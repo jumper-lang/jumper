@@ -1,0 +1,50 @@
+import java.util.ArrayList;
+// one call site, different receivers and overloads
+dyn call(o, x) { return o.append(x); }
+dyn sb = new StringBuilder();
+call(sb, 1); call(sb, "a"); call(sb, 2.5); call(sb, true); call(sb, 'c');
+assert(sb.toString() == "1a2.5truec", sb.toString());
+dyn sb2 = new StringBuilder("z");
+call(sb2, "q");
+assert(sb2.toString() == "zq");
+// polymorphic: >4 receiver classes -> megamorphic, still works
+dyn size(o) { return o.size(); }
+dyn l = new ArrayList(); l.add(1);
+dyn m = new java.util.HashMap(); m.put(1, 2);
+dyn s = new java.util.HashSet(); s.add(1);
+dyn d = new java.util.ArrayDeque(); d.add(1);
+dyn t = new java.util.TreeMap(); t.put(1, 1);
+dyn q = new java.util.LinkedList(); q.add(1);
+for (int i = 0; i < 3; i++) assert(size(l) + size(m) + size(s) + size(d) + size(t) + size(q) == 6);
+// statics through one site with different classes
+dyn mx(c, a, b) { return c.max(a, b); }
+assert(mx(Math, 1, 2) == 2 && mx(Integer, 3, 4) == 4 && mx(Math, 1.5, 0.5) == 1.5 && mx(Long, 5L, 6L) == 6L);
+// varargs
+assert(String.format("%s-%s", "a", "b") == "a-b" && String.join(",", "x") == "x" && String.format("plain") == "plain");
+// char/float results are normalized
+assert("abc".charAt(1) == "b" && type("abc".charAt(1)) == "string");
+assert(Float.parseFloat("1.5") == 1.5 && type(Float.parseFloat("1.5")) == "double");
+// void method
+dyn list = new ArrayList();
+list.add("x");
+list.clear();
+assert(list.size() == 0);
+// null arguments
+list.add(null);
+assert(list.get(0) == null && list.contains(null));
+// Jumper function -> functional interface via indy
+dyn nums = new ArrayList();
+nums.add(3); nums.add(1); nums.add(2);
+nums.sort((a, b) -> b - a);
+assert(nums.get(0) == 3 && nums.get(2) == 1);
+nums.removeIf(v -> v == 2);
+assert(nums.size() == 2);
+// table and array methods through the same mechanism
+dyn tbl = { f: x -> x + 1 };
+assert(tbl.f(1) == 2);
+dyn arr = [1];
+arr.push(2);
+assert(arr.size() == 2 && arr.indexOf(2) == 1);
+// error: no such method
+dyn ok = true;
+println("11_indy OK");

@@ -1,0 +1,73 @@
+// Specialized arrays: int[]/double[]/boolean[] inside, switching to Object[] when mixed
+dyn a = [1, 2, 3];
+a[3] = 4;                       // int path
+assert(a[3] == 4 && a.length == 4);
+a[1] = "x";                     // switch to Object[]
+assert(a[0] == 1 && a[1] == "x" && a[3] == 4);
+a[4] = 2.5;
+assert(a.length == 5 && a[4] == 2.5);
+
+dyn d = [1.5, 2.5];
+d[2] = 3;                       // int into a double array -> Object[]
+assert(d[2] == 3 && type(d[2]) == "int" && d[0] == 1.5);
+
+dyn flags = array(5, true);
+flags[2] = false;
+int cnt = 0;
+for (int i = 0; i < flags.length; i++) if (flags[i]) cnt++;
+assert(cnt == 4);
+flags[5] = true;                // growth
+assert(flags.length == 6);
+flags[0] = 7;                   // mixing
+assert(flags[0] == 7 && flags[1] == true);
+
+// typed loops over an int array
+int n = 1000;
+dyn sq = array(n, 0);
+for (int i = 0; i < n; i++) sq[i] = i * i;
+long s = 0;
+for (int i = 0; i < n; i++) s += sq[i];
+assert(s == 332833500L);
+double acc = 0;
+dyn ds = [];
+for (int i = 0; i < 10; i++) ds[i] = i / 2.0;
+for (int i = 0; i < 10; i++) acc += ds[i];
+assert(acc == 22.5);
+
+// pop/remove/clear/add on specialized arrays
+dyn p = [10, 20, 30];
+assert(p.pop() == 30 && p.length == 2);
+p.push(40, 50);
+assert(p.length == 4 && p[3] == 50);
+p.remove(0);
+assert(p[0] == 20 && p.length == 3);
+assert(p.contains(40) && p.indexOf(50) == 2);
+p.clear();
+assert(p.length == 0);
+p[0] = "s";                     // can it restart with another type after clear? no - the kind stays Object
+assert(p[0] == "s");
+
+dyn e = [];
+e[0] = true;                    // first element via setBool
+e[1] = false;
+assert(e.length == 2 && !e[1]);
+dyn e2 = [];
+e2[0] = 1.25;
+assert(e2[0] == 1.25);
+
+// an array with null and a mixed literal
+dyn m = [1, null, "a"];
+assert(m[1] == null && m.length == 3);
+assert(str([1, 2.5, true, "x"]) == "[1, 2.5, true, x]");
+
+// for-each and Java methods over an int array
+import java.util.Collections;
+dyn u = [3, 1, 2];
+Collections.sort(u);
+assert(u[0] == 1 && u[2] == 3);
+dyn sum = 0;
+for (dyn v : u) sum += v;
+assert(sum == 6);
+u.forEach(v -> { sum += v; });
+assert(sum == 12);
+println("10_arrays OK");

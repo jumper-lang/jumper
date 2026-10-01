@@ -1,0 +1,118 @@
+// throw a value of any type, catch unwraps it
+dyn got = null;
+try { throw "boom"; } catch (e) { got = e; }
+assert(got == "boom");
+try { throw { code: 42 }; } catch (e) { got = e.code; }
+assert(got == 42);
+try { throw 7; } catch (e) { got = e; }
+assert(got == 7);
+
+// runtime errors and error() - as JmpError with .message and a line number
+try { dyn t = null; t.x = 1; } catch (e) { got = e.message; }
+assert(got.startsWith("Cannot set property 'x' of null"), got);
+try { error("custom"); } catch (e) { got = e.message; }
+assert(got == "custom");
+try { dyn z = 1 / 0; } catch (e) { got = e.message; }
+assert(got == "Division by zero", got);
+try { [1][5]; } catch (e) { got = e.message; }
+assert(got.startsWith("Array index 5 out of bounds"), got);
+
+// Java exceptions are caught and available as objects
+try { Integer.parseInt("x"); } catch (e) { got = e; }
+assert(isa(got, NumberFormatException) && got.getMessage().contains("x"));
+try { dyn l = new java.util.ArrayList(); l.get(3); } catch (e) { got = type(got = e); }
+assert(got == "java.lang.IndexOutOfBoundsException", got);
+
+// finally: runs on normal exit, on exception, on return
+dyn log = "";
+dyn f1() { try { log += "a"; return 1; } finally { log += "f"; } }
+assert(f1() == 1 && log == "af");
+log = "";
+dyn f2() { try { throw "x"; } catch (e) { log += "c"; return 2; } finally { log += "f"; } }
+assert(f2() == 2 && log == "cf");
+log = "";
+dyn f3() { try { return 3; } finally { return 4; } }   // finally overrides
+assert(f3() == 4);
+log = "";
+try { try { throw "inner"; } finally { log += "f"; } } catch (e) { log += e; }
+assert(log == "finner");
+
+// break/continue through finally
+log = "";
+for (int i = 0; i < 5; i++) {
+    try {
+        if (i == 1) continue;
+        if (i == 3) break;
+        log += i;
+    } finally { log += "."; }
+}
+assert(log == "0..2..", log);
+
+// nested try, rethrow, throw from catch
+dyn risky(n) { if (n > 2) throw "too big: " + n; return n; }
+dyn sum = 0;
+for (int i = 0; i < 5; i++) {
+    try { sum += risky(i); }
+    catch (e) { try { throw e; } catch (e2) { sum += 100; } }
+}
+assert(sum == 0 + 1 + 2 + 200);
+got = null;
+try { try { throw "a"; } catch (e) { throw e + "b"; } } catch (e) { got = e; }
+assert(got == "ab");
+
+// an exception through a function without catch and through compiled code with primitives
+int deep(int n) { if (n == 0) throw "bottom"; return deep(n - 1) + 1; }
+try { deep(10); } catch (e) { got = e; }
+assert(got == "bottom");
+
+// finally with an exception from try and no catch - the exception is preserved
+got = null;
+try { try { throw "keep"; } finally { sum++; } } catch (e) { got = e; }
+assert(got == "keep");
+
+// an exception in a class method and in a lambda
+class Acc { dyn v = 0; void add(x) { if (x < 0) throw "negative"; v += x; } }
+dyn a = new Acc();
+try { a.add(1); a.add(-1); } catch (e) { got = e; }
+assert(a.v == 1 && got == "negative");
+dyn fn = () -> { throw { kind: "lambda" }; };
+try { fn(); } catch (e) { got = e.kind; }
+assert(got == "lambda");
+
+// an exception from a Java lambda (Jumper function as Comparator) passes straight through
+dyn list = new java.util.ArrayList();
+list.add(1); list.add(2);
+try { list.sort((x, y) -> { throw "in comparator"; }); } catch (e) { got = e; }
+assert(got == "in comparator", str(got));
+
+// try with no exception and no catch (finally only), the variable's value afterwards
+dyn k = 0;
+try { k = 1; } finally { k += 10; }
+assert(k == 11);
+
+// finally + return in a loop inside try, nested finally, an exception from finally
+dyn g() {
+    dyn log = "";
+    for (int i = 0; i < 3; i++) {
+        try {
+            try { if (i == 1) return log + "R"; log += i; }
+            finally { log += "a"; }
+        } finally { log += "b"; }
+    }
+    return log;
+}
+assert(g() == "0abR", g());
+dyn h() {
+    try { try { throw "x"; } finally { throw "y"; } } catch (e) { return e; }
+}
+assert(h() == "y");
+int cnt = 0;
+for (int i = 0; i < 10; i++) { try { if (i % 2 == 0) continue; cnt++; } finally { cnt += 10; } }
+assert(cnt == 105, cnt);
+// typed return through finally
+int t1() { int r = 1; try { r = 2; return r * 10; } finally { r = 99; } }
+assert(t1() == 20);
+double t2() { try { return 1.5; } finally { cnt++; } }
+assert(t2() == 1.5 && cnt == 106);
+
+println("13_exceptions OK");

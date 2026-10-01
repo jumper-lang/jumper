@@ -1,0 +1,60 @@
+// static fields and methods of a class
+class Counter {
+    static int made = 0;
+    static String prefix = "c";
+    static dyn all = [];
+    int id;
+    Counter() { made++; id = made; all.push(id); }
+    static int total() { return made; }
+    static String describe() { return prefix + ":" + total(); }   // a static sees statics by name
+    dyn label() { return prefix + id + "/" + made; }              // an instance method does too
+}
+dyn a = new Counter();
+dyn b = new Counter();
+assert(Counter.made == 2 && Counter.total() == 2 && Counter.describe() == "c:2");
+assert(a.label() == "c1/2" && b.label() == "c2/2" && a.id == 1);
+assert(Counter.all.length == 2 && Counter.prefix == "c");
+
+// writes from outside, types are checked
+Counter.made = 10;
+assert(Counter.total() == 10);
+Counter.made++;
+Counter.made += 4;
+assert(Counter.made == 15);
+dyn caught = "";
+dyn num = 42;                     // a literal would be a parse error: the static's type is known
+try { Counter.prefix = num; } catch (e) { caught = e.message; }
+assert(caught == "Cannot assign int to String", caught);
+try { dyn z = Counter.nope; } catch (e) { caught = e.message; }
+assert(caught == "No static member 'nope' in Counter", caught);
+
+// a static method as a value
+dyn f = Counter.total;
+assert(f() == 15);
+
+// inheritance: parent statics are reachable through the child and shared
+class Base {
+    static int shared = 1;
+    static String who() { return "base"; }
+    int x = 5;
+}
+class Sub extends Base {
+    static int own = 100;
+    static int both() { return shared + own; }
+    int get() { return shared + x; }
+}
+assert(Sub.shared == 1 && Sub.own == 100 && Sub.both() == 101 && Sub.who() == "base");
+assert(new Sub().get() == 6);
+Sub.shared = 7;
+assert(Base.shared == 7 && Sub.both() == 107);
+
+// typed statics without boxing, a counter in a loop
+class Acc {
+    static double sum = 0.0;
+    static long ticks = 0;
+    static void add(double v) { sum += v; ticks++; }
+}
+for (int i = 0; i < 1000; i++) Acc.add(0.5);
+assert(Acc.sum == 500.0 && Acc.ticks == 1000L);
+
+println("16_static OK");

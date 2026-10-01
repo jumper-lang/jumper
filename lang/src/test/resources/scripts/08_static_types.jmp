@@ -1,0 +1,60 @@
+// Primitive variables: int/long/double/boolean live without boxing
+int i = 7;
+long l = i;                // widening
+double d = l;
+boolean ok = i > 3;
+assert(type(i) == "int" && type(l) == "long" && type(d) == "double" && ok);
+assert(i / 2 == 3 && i % 2 == 1 && (i << 2) == 28 && (i & 3) == 3);
+assert(l * 1000000000L == 7000000000L);
+assert(d / 2 == 3.5);
+assert(-i == -7 && -d == -7.0);
+i += 3; i *= 2; i -= 4; i /= 2; i %= 5;
+assert(i == 3);
+i++; ++i; i--;
+assert(i == 4 && i++ == 4 && i == 5 && ++i == 6);
+d += 1; d *= 2;
+assert(d == 16.0);
+l++;
+assert(l == 8);
+boolean f = !ok;
+assert(f == false && (ok && !f) && (f || ok));
+
+// a primitive in a closure (upvalue in p[])
+int counter = 0;
+dyn bump = () -> { counter++; };
+bump(); bump();
+assert(counter == 2);
+
+// primitive parameters and mixed arithmetic
+double avg(int a, int b) { return (a + b) / 2.0; }
+assert(avg(3, 4) == 3.5);
+int clamp(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
+assert(clamp(15, 0, 10) == 10 && clamp(-1, 0, 10) == 0);
+
+// a dynamic value into a typed variable - checked at runtime
+dyn loose = 5;
+int fromDyn = loose;
+assert(fromDyn == 5);
+double dd = loose;
+assert(dd == 5.0);
+
+// primitives in for-each
+int total = 0;
+for (int v : [1, 2, 3]) total += v;
+assert(total == 6);
+double dt = 0;
+for (double v : [1, 2.5]) dt += v;
+assert(dt == 3.5);
+
+// ternary with primitives
+int m = i > 3 ? i * 2 : 0;
+assert(m == 12);
+
+// int/double comparisons
+assert(1 < 1.5 && 2 == 2.0 && 3L >= 3);
+
+// overflow as in Java
+int big = 2147483647;
+big++;
+assert(big == -2147483648);
+println("08_static_types OK");

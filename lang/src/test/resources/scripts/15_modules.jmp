@@ -1,0 +1,29 @@
+// import "file.jmp": the module runs once, its names are visible here
+import "lib/geom.jmp";
+import "lib/shapes.jmp";
+
+// a class from a module works as a type, with direct calls and typed fields
+Vec a = new Vec(1, 2);
+Vec b = a.add(new Vec(3, 4));
+assert(b.x == 4.0 && b.y == 6.0 && str(b) == "(4.0, 6.0)");
+assert(dist2(a, b) == 25.0 && a.dot(b) == 16.0);
+assert(type(a) == "Vec" && isa(a, Vec) && ZERO.x == 0.0);
+
+// both modules see the same geom instance (Vec from shapes is the same class)
+Segment s = new Segment(a, b);
+assert(s.len2() == 25.0);
+Segment u = unit();
+assert(u.len2() == 1.0 && isa(u.from, Vec));
+
+// module state is shared and survives the import: note() was called by two Segment constructors
+assert(notes() == 2, "" + notes());
+note();
+assert(notes() == 3);
+
+// type check against a class from a module
+dyn caught = "";
+dyn five = 5;
+try { a = five; } catch (e) { caught = e.message; }
+assert(caught == "Expected Vec, got int", caught);
+
+println("15_modules OK");

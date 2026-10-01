@@ -1,0 +1,7 @@
+import "geom.jmp";                  // path relative to this file
+class Segment {
+    Vec from, to;
+    Segment(Vec from, Vec to) { this.from = from; this.to = to; note(); }
+    double len2() { return dist2(from, to); }
+}
+Segment unit() { return new Segment(ZERO, new Vec(1, 0)); }

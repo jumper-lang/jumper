@@ -1,0 +1,8 @@
+jmp.jar contains only Jumper. The language server (jmp --lsp) downloads on first use:
+
+CFR 0.152 - a Java decompiler, by Lee Benfield
+  https://www.benf.org/other/cfr/  (org.benf:cfr:0.152, from Maven Central)
+  MIT License
+  For go-to-definition into classes that have no source. It is put into Jumper's data folder
+  (%LOCALAPPDATA%\jumper\cfr on Windows, $XDG_CACHE_HOME/jumper/cfr or ~/.cache/jumper/cfr elsewhere)
+  and checked against the SHA-256 pinned in jmp.jar (META-INF/jumper/cfr.properties).

@@ -1,0 +1,13 @@
+// Module: a class, functions and top-level state
+class Vec {
+    double x, y;
+    Vec(double x, double y) { this.x = x; this.y = y; }
+    Vec add(Vec o) { return new Vec(x + o.x, y + o.y); }
+    double dot(Vec o) { return x * o.x + y * o.y; }
+    dyn toString() { return "(" + x + ", " + y + ")"; }
+}
+Vec ZERO = new Vec(0, 0);
+double dist2(Vec a, Vec b) { double dx = a.x - b.x, dy = a.y - b.y; return dx * dx + dy * dy; }
+int created = 0;
+void note() { created++; }
+int notes() { return created; }

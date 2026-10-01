@@ -1,0 +1,34 @@
+int a = 5;
+long b = a;
+double c = b;
+boolean flag = true;
+String s = "str";
+assert(type(a) == "int" && type(b) == "long" && type(c) == "double");
+a = a + 1;
+assert(a == 6);
+c = 1;
+assert(c == 1.0 && type(c) == "double", "assignment widens to double");
+int z;
+assert(z == 0, "int default is 0");
+double dz;
+assert(dz == 0.0);
+boolean bz;
+assert(bz == false);
+String sz;
+assert(sz == null);
+
+int mul(int x, int y) { return x * y; }
+assert(mul(6, 7) == 42);
+
+println("06_typed OK");
+
+// int()/long()/double() on a numeric argument is a conversion (d2i etc.), not a function call;
+// on a dyn it is the old call with the same answers (including null for an unparsable string)
+double cd = 3.99; long cL = 5000000000L; int ci = -7;
+assert(int(cd) == 3 && int(cL) == 705032704 && int(ci) == -7 && int(-2.7) == -2);
+assert(long(cd) == 3 && long(ci) == -7 && long(cL) == 5000000000L);
+assert(double(ci) == -7.0 && double(cL) == 5.0E9 && double(cd) == 3.99);
+dyn cv = "12"; dyn cvd = 2.5;
+assert(int(cv) == 12 && int("x") == null && long("7") == 7 && double("1.5") == 1.5 && int(cvd) == 2);
+int ck = int(cd) + 1; assert(ck == 4);
+long cs = 0L; for (int cj = 0; cj < 100; cj++) { cs += int(cj * 0.5); } assert(cs == 2450, cs);

@@ -1,0 +1,63 @@
+# Jumper: the language, its CLI and its language server (`jmp --lsp`). A release: push a tag v<version> (the version
+# of lang/build.gradle.kts, e.g. v0.11.0). The language is tested in every mode and the release gets:
+#   jmp.jar               the language, its CLI and its language server - one self-contained jar (Java 21+)
+#   jmp-<version>.zip     the same with start scripts (bin/jmp, bin/jmp.bat)
+#   jmp.jar.sha256        what the editor extensions pin: jumper-vscode (package.json "jumperServer") and
+#                         jumper.nvim (M.server) take jmp.jar of a release and check it against this hash
+# The editor extensions live in their own repositories and depend only on these released files.
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Version
+        id: v
+        run: |
+          v=$(sed -n 's/^version = "\(.*\)"/\1/p' lang/build.gradle.kts)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF_NAME" != "v$v" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME, but lang/build.gradle.kts says $v"
+            exit 1
+          fi
+
+      - name: Test and build
+        run: |
+          chmod +x gradlew
+          ./gradlew :lang:test :lang:testTier0 :lang:testTablePrimsOff :lang:jar :lang:distZip
+          mkdir -p dist
+          cp lang/build/libs/jmp.jar lang/build/distributions/jmp-*.zip dist/
+          (cd dist && sha256sum jmp.jar > jmp.jar.sha256 && sha256sum * > SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jumper
+          path: dist/*
+
+      - name: GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          body: |
+            **CLI:** `java -jar jmp.jar script.jmp`, or unpack `jmp-${{ steps.v.outputs.version }}.zip` and put its `bin/` on the PATH. Needs Java 21+.
+            **Editors:** [VS Code](https://github.com/jumper-lang/jumper-vscode), [IntelliJ IDEA](https://github.com/jumper-lang/jumper-intellij), [Neovim](https://github.com/jumper-lang/jumper.nvim) - to use this server, pin `jmp.jar.sha256` there.

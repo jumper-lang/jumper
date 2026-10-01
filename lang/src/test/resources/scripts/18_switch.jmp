@@ -1,0 +1,64 @@
+// switch: arrow form without fall-through - both as a statement and as an expression
+int day = 3;
+dyn log = "";
+switch (day) {
+    case 1, 7 -> log += "weekend";
+    case 3 -> { log += "wed"; log += "!"; }
+    default -> log += "other";
+}
+assert(log == "wed!", log);
+
+// a label is any expression: numbers, strings, enums, constants, computed values
+assert(switch (day) { case 1 -> "mon"; case 3 -> "wed"; default -> "?"; } == "wed");
+assert(switch ("b") { case "a" -> 1; case "b" -> 2; default -> 0; } == 2);
+dyn mon = java.time.DayOfWeek.MONDAY;
+assert(switch (mon) { case java.time.DayOfWeek.MONDAY -> "start"; default -> "later"; } == "start");
+int base = 2;
+assert(switch (4) { case base * 2 -> "double"; default -> "no"; } == "double");
+
+// several labels, checked top to bottom
+dyn kind = "";
+for (int i = 0; i < 5; i++) kind += switch (i) { case 0, 2, 4 -> "e"; default -> "o"; };
+assert(kind == "eoeoe", kind);
+
+// the selector is evaluated once
+int calls = 0;
+int next() { calls++; return 2; }
+assert(switch (next()) { case 1 -> "one"; case 2 -> "two"; default -> "?"; } == "two");
+assert(calls == 1, "" + calls);
+switch (next()) { default -> log += "d"; }        // default only - the selector is still evaluated
+assert(calls == 2 && log == "wed!d");
+
+// a switch statement without default does nothing on a miss
+dyn hit = false;
+switch (99) { case 1 -> hit = true; }
+assert(!hit);
+
+// nested switch expressions and types
+double rate = switch (day) { case 3 -> 0.5; default -> 1.0; };
+assert(rate == 0.5);
+assert(switch (7 % 3) { case 0 -> "fizz"; case 1 -> switch (7) { case 7 -> "seven"; default -> "one"; }; default -> "two"; } == "seven");
+
+// break/continue inside a branch refer to the loop (no fall-through - no need to exit the switch)
+dyn seen = "";
+for (int i = 0; i < 5; i++) {
+    switch (i) {
+        case 0 -> continue;
+        case 3 -> { seen += "!"; break; }
+        default -> seen += i;
+    }
+}
+assert(seen == "12!", seen);
+
+// in methods and functions, with statics and fields
+class Shape {
+    static String describe(int sides) {
+        return switch (sides) { case 3 -> "triangle"; case 4 -> "square"; default -> sides + "-gon"; };
+    }
+    int sides = 5;
+    String name() { return switch (sides) { case 5 -> "pentagon"; default -> Shape.describe(sides); }; }
+}
+assert(Shape.describe(3) == "triangle" && Shape.describe(7) == "7-gon");
+assert(new Shape().name() == "pentagon");
+
+println("18_switch OK");

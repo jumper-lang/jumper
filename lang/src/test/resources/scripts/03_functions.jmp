@@ -1,0 +1,67 @@
+int fib(int n) { if (n < 2) return n; return fib(n - 1) + fib(n - 2); }
+assert(fib(20) == 6765);
+
+dyn greet(name, greeting) { return (greeting == null ? "Hello" : greeting) + ", " + name; }
+assert(greet("Bob") == "Hello, Bob");           // missing arguments -> null
+assert(greet("Bob", "Hi", "extra") == "Hi, Bob"); // extra ones are ignored
+
+dyn add = (a, b) -> a + b;
+dyn twice = f -> x -> f(f(x));
+assert(add(2, 3) == 5);
+assert(twice(x -> x * 2)(5) == 20);
+
+dyn sq = (x) -> { return x * x; };
+assert(sq(7) == 49);
+
+dyn counter() { dyn c = 0; return () -> { c = c + 1; return c; }; }
+dyn c1 = counter(); dyn c2 = counter();
+c1(); c1();
+assert(c1() == 3 && c2() == 1, "independent closures");
+
+// a closure modifies an outer variable
+dyn total = 0;
+dyn addTo = n -> { total += n; };
+addTo(5); addTo(6);
+assert(total == 11);
+
+// functions are values in tables
+dyn ops = { plus: (a, b) -> a + b, minus: (a, b) -> a - b };
+assert(ops.plus(1, 2) == 3 && ops["minus"](5, 3) == 2);
+
+// typed parameters
+double half(double x) { return x / 2; }
+assert(half(5) == 2.5, "int widened to double param");
+
+int strict(int x) { return x; }
+dyn failed = false;
+dyn tryStrict = () -> strict(1.5);
+// no try/catch yet - check that an int parameter accepts an int
+assert(strict(4) == 4);
+
+// recursion through a local function
+dyn fact(n) { return n <= 1 ? 1 : n * fact(n - 1); }
+assert(fact(10) == 3628800);
+
+// deep recursion
+dyn depth(n) { return n == 0 ? 0 : 1 + depth(n - 1); }
+assert(depth(20000) == 20000);
+
+// nested functions
+dyn outer() {
+    dyn inner(x) { return x + 1; }
+    return inner(41);
+}
+assert(outer() == 42);
+// void / dyn / typed return
+dyn order = "";
+void log(x) { order += x; }
+assert(log("a") == null && order == "a");
+dyn ident(x) { return x; }
+assert(ident(1) == 1 && ident("s") == "s");
+String greet2(String n) { return "hi " + n; }
+assert(greet2("x") == "hi x");
+boolean isPos(int n) { return n > 0; }
+assert(isPos(3) && !isPos(-1));
+long big() { return 1L << 40; }
+assert(big() == 1099511627776L);
+println("03_functions OK");
