@@ -1,4 +1,4 @@
-rootProject.name = "JavaJumper"
+rootProject.name = "jumper"
 
 // One Gradle project, three subprojects. The benchmark used to be a separate build with its own
 // wrapper: half of the commands only worked from its own directory, and the harness picked up
