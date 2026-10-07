@@ -70,7 +70,13 @@ public final class Access {
             "java.util.concurrent.ThreadPoolExecutor", "java.util.concurrent.ScheduledThreadPoolExecutor",
             "java.util.concurrent.Executor", "java.util.concurrent.ExecutorService",
             // instantiates whatever provider classes the class path has
-            "java.util.ServiceLoader"
+            "java.util.ServiceLoader",
+            // native code and process/VM control reachable from a plain allowPackage("java.lang"):
+            // FFI downcalls, the platform MBean server and all system properties, module internals
+            "java.lang.foreign.", "java.lang.management.", "java.lang.module.",
+            // reachable from a plain allowPackage("java.util"): file/socket log sinks, tool runners,
+            // on-disk preferences, and java.util.Formatter(String) which opens a file with only a String arg
+            "java.util.logging.", "java.util.spi.", "java.util.prefs.", "java.util.Formatter"
     };
 
     /**

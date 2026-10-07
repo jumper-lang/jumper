@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "me.padej"
-version = "0.11.0"
+version = "0.11.1"
 
 // Output encoding of the processes Gradle forks.
 //
