@@ -5,6 +5,7 @@ import java.security.MessageDigest
 plugins {
     id("java")
     id("application")
+    id("maven-publish")
 }
 
 group = "me.padej"
@@ -145,4 +146,23 @@ tasks.named<JavaExec>("run") {
     standardInput = System.`in`
     utf8Pipe()
     jvmArgs("-Xss16m")
+}
+
+
+// Published to JitPack so hosts can depend on the language as a library:
+//   repositories { maven("https://jitpack.io") }
+//   dependencies { implementation("com.github.jumper-lang:jumper:<tag>") }   // e.g. v0.11.1
+// JitPack builds the tag (see jitpack.yml) and serves what :lang publishes here.
+java {
+    withSourcesJar()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("jumper") {
+            groupId = "com.github.jumper-lang"
+            artifactId = "jumper"
+            from(components["java"])
+        }
+    }
 }

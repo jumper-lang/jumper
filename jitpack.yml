@@ -1,0 +1,6 @@
+# JitPack builds a tag on demand and serves what :lang publishes to the local Maven repo.
+# Pin the JDK (JitPack's default is too old for a Java 21 build) and publish only :lang.
+jdk:
+  - openjdk21
+install:
+  - ./gradlew :lang:publishToMavenLocal -x test
