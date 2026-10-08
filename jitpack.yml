@@ -1,6 +1,14 @@
-# JitPack builds a tag on demand and serves what :lang publishes to the local Maven repo.
-# Pin the JDK (JitPack's default is too old for a Java 21 build) and publish only :lang.
+# JitPack build: pin JDK 21 and publish :lang to the local Maven repo.
+#
+# We install Gradle via SDKMAN and call `gradle` directly instead of ./gradlew.
+# On the JitPack build image the project wrapper does not launch
+# ("Could not find or load main class org.gradle.wrapper.GradleWrapperMain"),
+# even though a clean checkout of the tag runs the wrapper fine everywhere else.
+# Using a provided Gradle sidesteps that. Keep the version in sync with
+# gradle/wrapper/gradle-wrapper.properties (gradle-9.2.0).
 jdk:
   - openjdk21
 install:
-  - ./gradlew :lang:publishToMavenLocal -x test
+  - sdk install gradle 9.2.0 || true
+  - sdk use gradle 9.2.0 || true
+  - gradle :lang:publishToMavenLocal -x test --no-daemon
